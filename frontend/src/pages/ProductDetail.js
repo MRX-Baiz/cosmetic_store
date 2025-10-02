@@ -66,6 +66,9 @@ const ProductDetail = () => {
     );
   }
 
+  console.log('Product images data:', product.images);
+  console.log('Image URL for CardMedia:', getFullImageUrl(product.images[0]?.url));
+
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
       <Grid container spacing={4}>
