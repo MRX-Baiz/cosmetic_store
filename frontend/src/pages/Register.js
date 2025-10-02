@@ -26,7 +26,7 @@ const Register = () => {
 
   useEffect(() => {
     if (isAuthenticated) {
-      navigate('/');
+      navigate('/', { replace: true });
     }
   }, [isAuthenticated, navigate]);
 
@@ -54,7 +54,7 @@ const Register = () => {
     const result = await register({ ...registerData, role: 'user' });
     
     if (result.success) {
-      navigate('/');
+      navigate('/', { replace: true });
     }
     
     setIsSubmitting(false);

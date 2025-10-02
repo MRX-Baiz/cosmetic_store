@@ -7,8 +7,8 @@ import { productsAPI } from '../services/api'; // Assuming productsAPI exists fo
 import AddShoppingCartIcon from '@mui/icons-material/AddShoppingCart';
 
 const getFullImageUrl = (imagePath) => {
-  // Assuming imagePath is like '/uploads/image.jpg'
-  return imagePath ? `http://localhost:5001${imagePath}` : '';
+  // With Cloudinary, the imagePath is already a full URL.
+  return imagePath || '';
 };
 
 const ProductDetail = () => {

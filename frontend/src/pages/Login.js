@@ -24,7 +24,7 @@ const Login = () => {
 
   useEffect(() => {
     if (isAuthenticated) {
-      navigate('/');
+      navigate('/', { replace: true });
     }
   }, [isAuthenticated, navigate]);
 
@@ -46,7 +46,7 @@ const Login = () => {
     const result = await login(formData);
     
     if (result.success) {
-      navigate('/');
+      navigate('/', { replace: true });
     }
     
     setIsSubmitting(false);
