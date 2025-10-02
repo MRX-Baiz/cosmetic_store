@@ -49,8 +49,16 @@ export const productsAPI = {
   getProducts: (params) => api.get('/products', { params }),
   getProduct: (id) => api.get(`/products/${id}`),
   getFeaturedProducts: () => api.get('/products/featured'),
-  createProduct: (productData) => api.post('/products', productData),
-  updateProduct: (id, productData) => api.put(`/products/${id}`, productData),
+  createProduct: (productData) => api.post('/products', productData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  }),
+  updateProduct: (id, productData) => api.put(`/products/${id}`, productData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  }),
   deleteProduct: (id) => api.delete(`/products/${id}`),
   addReview: (id, reviewData) => api.post(`/products/${id}/reviews`, reviewData),
 };
