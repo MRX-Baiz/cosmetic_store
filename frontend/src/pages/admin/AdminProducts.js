@@ -84,8 +84,8 @@ const AdminProducts = () => {
     tags: '',
   });
 
-  const [uploadedFiles, setUploadedFiles] = useState([]);
-  const [uploading, setUploading] = useState(false);
+  const [selectedImageFile, setSelectedImageFile] = useState(null);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState('');
 
   const categories = [
     'skincare',
@@ -155,19 +155,13 @@ const AdminProducts = () => {
         tags: product.tags?.join(', ') || '',
       });
       
-      // Load existing images into uploadedFiles state
+      // Load existing primary image into preview state
       if (product.images && product.images.length > 0) {
-        const existingImages = product.images.map((img, index) => ({
-          id: `existing-${index}-${Date.now()}`,
-          url: img.url,
-          type: img.type || 'image',
-          name: img.alt || `Image ${index + 1}`,
-          file: null // No file object for existing images
-        }));
-        setUploadedFiles(existingImages);
+        setImagePreviewUrl(product.images[0].url);
       } else {
-        setUploadedFiles([]);
+        setImagePreviewUrl('');
       }
+      setSelectedImageFile(null); // No file object for existing images unless re-uploaded
     } else {
       setEditingProduct(null);
       setFormData({
@@ -188,7 +182,8 @@ const AdminProducts = () => {
         isFeatured: false,
         tags: '',
       });
-      setUploadedFiles([]);
+      setSelectedImageFile(null);
+      setImagePreviewUrl('');
     }
     setOpenDialog(true);
   };
@@ -196,7 +191,8 @@ const AdminProducts = () => {
   const handleCloseDialog = () => {
     setOpenDialog(false);
     setEditingProduct(null);
-    setUploadedFiles([]);
+    setSelectedImageFile(null);
+    setImagePreviewUrl('');
   };
 
   const handleInputChange = (e) => {
@@ -207,91 +203,56 @@ const AdminProducts = () => {
     }));
   };
 
-  const handleFileUpload = async (e) => {
-    const files = Array.from(e.target.files);
-    console.log('Files selected for upload:', files);
-    setUploading(true);
-
-    try {
-      const formData = new FormData();
-      files.forEach(file => {
-        formData.append('files', file);
-      });
-
-      console.log('Uploading files to /api/upload/multiple');
-      const response = await fetch(`${API_URL}/upload/multiple`, {
-        method: 'POST',
-        body: formData,
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-
-      console.log('Upload response status:', response.status);
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error('Upload error response:', errorData);
-        throw new Error(errorData.message || 'Upload failed');
-      }
-
-      const result = await response.json();
-      console.log('Upload successful, result:', result);
-      
-      const uploadedFiles = result.files.map(file => ({
-        id: Date.now() + Math.random(),
-        url: file.url,
-        type: file.type,
-        name: file.originalName,
-        file: file
-      }));
-
-      console.log('Processed uploaded files:', uploadedFiles);
-      setUploadedFiles(prev => [...prev, ...uploadedFiles]);
-      
-      // Reset the file input
-      e.target.value = '';
-    } catch (error) {
-      setError('Failed to upload files: ' + error.message);
-      console.error('Upload error:', error);
-    } finally {
-      setUploading(false);
+  const handleImageFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setSelectedImageFile(file);
+      setImagePreviewUrl(URL.createObjectURL(file));
+    } else {
+      setSelectedImageFile(null);
+      setImagePreviewUrl(editingProduct?.images?.[0]?.url || ''); // Revert to existing if available
     }
-  };
-
-  const removeFile = (fileId) => {
-    setUploadedFiles(prev => prev.filter(file => file.id !== fileId));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const productData = {
-        ...formData,
-        price: parseFloat(formData.price),
-        originalPrice: formData.originalPrice ? parseFloat(formData.originalPrice) : undefined,
-        stock: parseInt(formData.stock),
-        features: formData.features ? formData.features.split(',').map(f => f.trim()) : [],
-        ingredients: formData.ingredients ? formData.ingredients.split(',').map(i => i.trim()) : [],
-        tags: formData.tags ? formData.tags.split(',').map(t => t.trim()) : [],
-        images: uploadedFiles.map(file => ({
-          url: file.url,
-          alt: file.name,
-          type: file.type
-        })),
-      };
+      const productFormData = new FormData();
 
-      console.log('Submitting product data:', productData);
-      console.log('Uploaded files:', uploadedFiles);
+      // Append all form data fields
+      Object.keys(formData).forEach(key => {
+        // Handle array fields (features, ingredients, tags)
+        if (['features', 'ingredients', 'tags'].includes(key)) {
+          productFormData.append(key, formData[key] ? formData[key].split(',').map(f => f.trim()).filter(Boolean).join(',') : '');
+        } else if (key === 'price' || key === 'originalPrice' || key === 'stock') {
+          productFormData.append(key, parseFloat(formData[key]) || '');
+        } else {
+          productFormData.append(key, formData[key]);
+        }
+      });
 
+      // Append the selected image file
+      if (selectedImageFile) {
+        productFormData.append('image', selectedImageFile);
+      } else if (editingProduct && imagePreviewUrl && !imagePreviewUrl.startsWith('blob:')) {
+        // If no new file selected but there's an existing image URL, we might need to send it
+        // to ensure it's not removed if the backend expects an 'image' field to always be present.
+        // However, with `multer.single('image')`, if no file is sent, req.file will be undefined.
+        // The backend should handle update gracefully if no new image is provided.
+        // For now, we only send 'image' if a new file is selected.
+        // To keep existing images without re-uploading, the backend `products.js` needs to be robust.
+        // Our current backend `products.js` handles this by only processing `req.file` if it exists.
+      }
+
+      console.log('Submitting product FormData:', productFormData);
+      
       if (editingProduct) {
-        await productsAPI.updateProduct(editingProduct._id, productData);
+        await productsAPI.updateProduct(editingProduct._id, productFormData);
       } else {
-        await productsAPI.createProduct(productData);
+        await productsAPI.createProduct(productFormData);
       }
 
       handleCloseDialog();
-      setUploadedFiles([]);
       fetchProducts();
     } catch (err) {
       setError('Failed to save product: ' + (err.response?.data?.message || err.message));
@@ -704,85 +665,55 @@ const AdminProducts = () => {
                 </Typography>
                 <Box sx={{ mb: 2 }}>
                   <input
-                    accept="image/*,video/*"
+                    accept="image/*"
                     style={{ display: 'none' }}
                     id="file-upload"
-                    multiple
                     type="file"
-                    onChange={handleFileUpload}
+                    onChange={handleImageFileChange}
                   />
                   <label htmlFor="file-upload">
                     <Button
                       variant="outlined"
                       component="span"
                       startIcon={<CloudUpload />}
-                      disabled={uploading}
+                      disabled={false} // No longer 'uploading' in a separate step
                       sx={{ mb: 2 }}
                     >
-                      {uploading ? 'Uploading...' : 'Upload Images/Videos'}
+                      {selectedImageFile ? 'Change Image' : 'Upload Image'}
                     </Button>
                   </label>
-                  <Typography variant="caption" display="block" color="text.secondary">
-                    Upload product images and videos (JPG, PNG, MP4, MOV)
+                  {imagePreviewUrl && (
+                    <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
+                      <img
+                        src={imagePreviewUrl}
+                        alt="Product Preview"
+                        style={{
+                          width: 100,
+                          height: 100,
+                          objectFit: 'cover',
+                          borderRadius: 8,
+                          border: '1px solid #ddd'
+                        }}
+                      />
+                      <Typography variant="body2">{selectedImageFile?.name || 'Existing Image'}</Typography>
+                      <IconButton size="small" color="error" onClick={() => {
+                        setSelectedImageFile(null);
+                        setImagePreviewUrl('');
+                        // Clear the file input visually as well
+                        const fileInput = document.getElementById('file-upload');
+                        if (fileInput) fileInput.value = '';
+                      }}>
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    </Box>
+                  )}
+                  <Typography variant="caption" display="block" color="text.secondary" sx={{ mt: 1 }}>
+                    Upload a single product image (JPG, PNG).
                   </Typography>
                 </Box>
 
                 {/* Display uploaded files */}
-                {uploadedFiles.length > 0 && (
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 2 }}>
-                    {uploadedFiles.map((file) => (
-                      <Box key={file.id} sx={{ position: 'relative' }}>
-                        {file.type === 'image' ? (
-                          <img
-                            src={file.url}
-                            alt={file.name}
-                            style={{
-                              width: 100,
-                              height: 100,
-                              objectFit: 'cover',
-                              borderRadius: 8,
-                              border: '1px solid #ddd'
-                            }}
-                          />
-                        ) : (
-                          <Box
-                            sx={{
-                              width: 100,
-                              height: 100,
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              backgroundColor: '#f5f5f5',
-                              borderRadius: 8,
-                              border: '1px solid #ddd'
-                            }}
-                          >
-                            <VideoFile color="primary" />
-                          </Box>
-                        )}
-                        <IconButton
-                          size="small"
-                          onClick={() => removeFile(file.id)}
-                          sx={{
-                            position: 'absolute',
-                            top: -8,
-                            right: -8,
-                            backgroundColor: 'error.main',
-                            color: 'white',
-                            '&:hover': {
-                              backgroundColor: 'error.dark',
-                            }
-                          }}
-                        >
-                          <DeleteIcon fontSize="small" />
-                        </IconButton>
-                        <Typography variant="caption" display="block" sx={{ mt: 0.5, textAlign: 'center' }}>
-                          {file.name.length > 10 ? file.name.substring(0, 10) + '...' : file.name}
-                        </Typography>
-                      </Box>
-                    ))}
-                  </Box>
-                )}
+                {/* Removed multi-file display logic */}
               </Grid>
 
               <Grid item xs={12}>
