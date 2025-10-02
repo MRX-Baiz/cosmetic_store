@@ -244,6 +244,10 @@ const AdminProducts = () => {
         // Our current backend `products.js` handles this by only processing `req.file` if it exists.
       }
 
+      // For debugging: Inspect FormData contents
+      for (let pair of productFormData.entries()) {
+        console.log(pair[0] + ': ', pair[1]);
+      }
       console.log('Submitting product FormData:', productFormData);
       
       if (editingProduct) {

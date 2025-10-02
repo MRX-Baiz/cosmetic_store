@@ -83,9 +83,11 @@ router.get('/:id', async (req, res) => {
 // Create product (admin only)
 router.post('/', adminAuth, upload.single('image'), async (req, res) => {
   try {
-    const productData = req.body;
     console.log('Create product request received');
-    console.log('Product data:', productData);
+    console.log('*** Backend Product Create - Initial Request Data ***');
+    console.log('req.file:', req.file);
+    console.log('req.body:', req.body);
+    const productData = req.body;
     
     // Handle image upload if a new image is provided
     if (req.file) {
@@ -124,6 +126,9 @@ router.post('/', adminAuth, upload.single('image'), async (req, res) => {
 // Update product (admin only)
 router.put('/:id', adminAuth, upload.single('image'), async (req, res) => {
   try {
+    console.log('*** Backend Product Update - Initial Request Data ***');
+    console.log('req.file:', req.file);
+    console.log('req.body:', req.body);
     const productData = req.body;
     
     // Handle image upload if a new image is provided
