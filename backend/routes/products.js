@@ -89,16 +89,24 @@ router.post('/', adminAuth, upload.single('image'), async (req, res) => {
     
     // Handle image upload if a new image is provided
     if (req.file) {
-      const result = await cloudinary.uploader.upload(req.file.buffer.toString('base64'), {
-        folder: 'cosmetic-store-products',
-      });
-      // Ensure images is an array before pushing
-      if (!productData.images) {
-        productData.images = [];
+      console.log('Image file received:', req.file.originalname, req.file.mimetype);
+      try {
+        const result = await cloudinary.uploader.upload(req.file.buffer.toString('base64'), {
+          folder: 'cosmetic-store-products',
+        });
+        console.log('Cloudinary upload result:', result);
+        // Ensure images is an array before pushing
+        if (!productData.images) {
+          productData.images = [];
+        }
+        productData.images.push({ url: result.secure_url, alt: productData.name || 'Product Image', type: 'image' });
+      } catch (cloudinaryError) {
+        console.error('Cloudinary upload error:', cloudinaryError);
+        // Optionally, handle this error more gracefully, e.g., send a client-side error
       }
-      productData.images.push({ url: result.secure_url, alt: productData.name || 'Product Image', type: 'image' });
     }
     
+    console.log('Product data after image processing:', productData);
     const product = new Product(productData);
     await product.save();
 
@@ -120,20 +128,28 @@ router.put('/:id', adminAuth, upload.single('image'), async (req, res) => {
     
     // Handle image upload if a new image is provided
     if (req.file) {
-      const result = await cloudinary.uploader.upload(req.file.buffer.toString('base64'), {
-        folder: 'cosmetic-store-products',
-      });
-      // To update, we replace the first image or add a new one if no images exist
-      if (!productData.images) {
-        productData.images = [];
-      }
-      if (productData.images.length > 0) {
-        productData.images[0] = { url: result.secure_url, alt: productData.name || 'Product Image', type: 'image' };
-      } else {
-        productData.images.push({ url: result.secure_url, alt: productData.name || 'Product Image', type: 'image' });
+      console.log('Image file received for update:', req.file.originalname, req.file.mimetype);
+      try {
+        const result = await cloudinary.uploader.upload(req.file.buffer.toString('base64'), {
+          folder: 'cosmetic-store-products',
+        });
+        console.log('Cloudinary update upload result:', result);
+        // To update, we replace the first image or add a new one if no images exist
+        if (!productData.images) {
+          productData.images = [];
+        }
+        if (productData.images.length > 0) {
+          productData.images[0] = { url: result.secure_url, alt: productData.name || 'Product Image', type: 'image' };
+        } else {
+          productData.images.push({ url: result.secure_url, alt: productData.name || 'Product Image', type: 'image' });
+        }
+      } catch (cloudinaryError) {
+        console.error('Cloudinary update upload error:', cloudinaryError);
+        // Optionally, handle this error more gracefully
       }
     }
     
+    console.log('Product data after image processing for update:', productData);
     const product = await Product.findByIdAndUpdate(
       req.params.id,
       productData,
