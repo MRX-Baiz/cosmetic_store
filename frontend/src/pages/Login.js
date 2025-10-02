@@ -23,11 +23,12 @@ const Login = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    console.log('Login useEffect - isAuthenticated:', isAuthenticated);
-    if (isAuthenticated) {
-      console.log('Login useEffect - Navigating to /');
-      navigate('/', { replace: true });
-    }
+    // Removing automatic navigation here, as we'll force a reload on successful login.
+    // console.log('Login useEffect - isAuthenticated:', isAuthenticated);
+    // if (isAuthenticated) {
+    //   console.log('Login useEffect - Navigating to /');
+    //   navigate('/', { replace: true });
+    // }
   }, [isAuthenticated, navigate]);
 
   useEffect(() => {
@@ -48,7 +49,11 @@ const Login = () => {
     const result = await login(formData);
     
     if (result.success) {
-      navigate('/', { replace: true });
+      // Force a full page reload to ensure authentication state is fully recognized
+      // and the correct route is rendered.
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 100); // Small delay to allow state updates to propagate
     }
     
     setIsSubmitting(false);

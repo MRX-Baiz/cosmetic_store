@@ -25,11 +25,12 @@ const Register = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    console.log('Register useEffect - isAuthenticated:', isAuthenticated);
-    if (isAuthenticated) {
-      console.log('Register useEffect - Navigating to /');
-      navigate('/', { replace: true });
-    }
+    // Removing automatic navigation here, as we'll force a reload on successful registration.
+    // console.log('Register useEffect - isAuthenticated:', isAuthenticated);
+    // if (isAuthenticated) {
+    //   console.log('Register useEffect - Navigating to /');
+    //   navigate('/', { replace: true });
+    // }
   }, [isAuthenticated, navigate]);
 
   useEffect(() => {
@@ -56,7 +57,11 @@ const Register = () => {
     const result = await register({ ...registerData, role: 'user' });
     
     if (result.success) {
-      navigate('/', { replace: true });
+      // Force a full page reload to ensure authentication state is fully recognized
+      // and the correct route is rendered.
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 100); // Small delay to allow state updates to propagate
     }
     
     setIsSubmitting(false);
