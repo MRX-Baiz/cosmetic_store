@@ -25,7 +25,9 @@ const Register = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
+    console.log('Register useEffect - isAuthenticated:', isAuthenticated);
     if (isAuthenticated) {
+      console.log('Register useEffect - Navigating to /');
       navigate('/', { replace: true });
     }
   }, [isAuthenticated, navigate]);

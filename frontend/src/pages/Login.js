@@ -23,7 +23,9 @@ const Login = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
+    console.log('Login useEffect - isAuthenticated:', isAuthenticated);
     if (isAuthenticated) {
+      console.log('Login useEffect - Navigating to /');
       navigate('/', { replace: true });
     }
   }, [isAuthenticated, navigate]);
